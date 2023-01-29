@@ -5,7 +5,7 @@ from scipy.optimize import curve_fit
 import os
 import json
 
-DIR = "/home/dhenl2/Auto-Compressor"
+DIR = "/home/dhenl2/Auto-Compressor/src"
 
 class CalibrationData:
     def __init__(self, air_pressure):

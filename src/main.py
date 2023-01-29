@@ -2,6 +2,7 @@ import RPi.GPIO as GPIO
 import time
 import signal
 import sys
+from gpiozero import MCP3008
 
 from RelayController import RelayController
 
@@ -27,7 +28,7 @@ def setup():
 
     return relay_controller
 
-def main():
+def relay_test():
     def stop_GPIO(sig, frame):
         print("Setting all GPIOs to low")
         relay_controller.set_all_low()
@@ -44,6 +45,13 @@ def main():
         time.sleep(0.8)
         relay_controller.set_low(pin)
         time.sleep(2)
+def main():
+    air_read = MCP3008(0)
+
+    while True:
+        print(f"Air Voltage reading: {air_read.value}")
+        time.sleep(1)
+
 
 if __name__ == "__main__":
     main()
