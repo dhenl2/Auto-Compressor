@@ -33,6 +33,14 @@ class AutoCompressor:
         self.initialise()
 
     def initialise(self):
+        # logger
+        logger.remove()
+        logger.add(
+            sink=self.config[CONFIG_LOGGER]["file"],
+            rotation=timedelta(day=1),
+            level=self.config[CONFIG_LOGGER]["level"],
+            colourize=True
+        )
         self.logger.info("Initialising AutoCompressor...")
 
         # initialise air sensor
@@ -54,26 +62,18 @@ class AutoCompressor:
         self.flow_rate_out = self.confg[CONFIG_COMPRESSOR]["flow_rate_out"]
         self.on_delay = self.config[CONFIG_COMPRESSOR]["on_delay"]
 
-        # logger
-        logger.remove()
-        logger.add(
-            sink=self.config[CONFIG_LOGGER]["file"],
-            rotation=timedelta(day=1),
-            level=self.config[CONFIG_LOGGER]["level"],
-            colourize=True
-        )
         self.logger.info("Finished initialising")
 
     def reach_target(self, target):
         units = self.air_sensor.units
-        self.logger(f"Inflate/deflate to target {target}{units}")
+        self.logger.info(f"Inflate/deflate to target {target}{units}")
         if target is None:
             raise Exception(f"Target {self.air_sensor.units} not given")
 
         p_current = self.check_pressure(raw=True)
 
         if round(p_current) == target:
-            self.logger(f"Current reading of {round(p_current)}{units} is already at target of {target}{units}")
+            self.logger.info(f"Current reading of {round(p_current)}{units} is already at target of {target}{units}")
             return
 
         # perform volume estimation for estimating time to target inflation
