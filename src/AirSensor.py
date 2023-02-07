@@ -47,7 +47,7 @@ class CalibrationData:
             save.write(json.dumps(to_write, indent=2))
 
 class AirSensor:
-    def __init__(self, channel=0):
+    def __init__(self, config=None, channel=0):
         self.calib_save = "calibration.json"
         self.channel = 0
         self.sensor = MCP3008(channel)
@@ -57,11 +57,18 @@ class AirSensor:
 
         self.units = None
 
-        if not self.has_calibration():
-            print("No calibration data found.")
-            self.calibrate()
+        if not config:
+            if not self.has_calibration():
+                print("No calibration data found.")
+                self.calibrate()
+            else:
+                self.load_calibration()
         else:
-            self.load_calibration()
+            self.m = config["m"]
+            self.c = config["c"]
+
+    def read_sensor(self):
+        return self.get_avg_reading()
 
     def get_reading(self, x=None, m=None, c=None):
         if x is None:
