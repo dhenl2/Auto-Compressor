@@ -26,7 +26,7 @@ Plan is to modify the existing trigger for the pump to make it controllable via 
 | Air Presure Sensor | 1 | $20.23 | $20.23 |
 | 2 Channel Relay | 1 | $6.96 | $6.96 |
 | ESP8266 | 1 | $3.88 | $3.88 |
-| | | Total | $169.80|
+| | | **Total** | **$169.80**|
 
 #### Diagram
 ![Slim Design](./diagramSlim.png)
@@ -46,7 +46,7 @@ Plan to was to create an entirely separate module from the compressor to be publ
 | Air Presure Sensor | 1 | $20.23 | $20.23 |
 | 2 Channel Relay | 1 | $6.96 | $6.96 |
 | ESP8266 | 1 | $3.88 | $3.88 |
-| | | Total | $283.27|
+| | | **Total** | **$283.27**|
 
 #### Diagram
 
