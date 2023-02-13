@@ -31,7 +31,7 @@ Plan is to modify the existing trigger for the pump to make it controllable via 
 | | | **Total** | **$169.80**|
 
 #### Diagram
-![Slim Design](./diagramSlim.png)
+![Slim Design](diagrams/diagramSlim.png)
 
 ## Design V1 - Independent Module
 Plan to was to create an entirely separate module from the compressor to be publicly sold. It was discovered that the sum of the products would not be competitive with the [current opposition](https://www.4wdevo.com.au/product/autoflate/) ($375 if available...). 2 solenoid valves would be equal to $180 without considering other components. So it will be scrapped.
@@ -52,5 +52,5 @@ Plan to was to create an entirely separate module from the compressor to be publ
 
 #### Diagram
 
-![diagram](diagram.png)
+![diagram](diagrams/diagram.png)
 
