@@ -1,7 +1,7 @@
 # Auto-Compressor
-**As a** person pumping up tyres 
-**I would like** to select a target pressure for each of tyres to be inflated/deflated to
-**so that** it is more convenient that if I was to do it manually.
+**As a** person pumping up tyres  
+**I would like** to select a target pressure for each of tyres to be inflated/deflated to  
+**so that** it is more convenient than if I was to do it manually.
 
 Goal is to create a system that can:
 - Control air flow going in and out of the tyre
