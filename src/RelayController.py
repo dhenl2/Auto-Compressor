@@ -1,5 +1,11 @@
 import RPi.GPIO as GPIO
 
+def get_pin_output(state):
+    if state:
+        return GPIO.HIGH
+    else:
+        return GPIO.LOW
+
 class MaxChannelError(Exception):
     pass
 
@@ -7,12 +13,19 @@ class UnknownRegisterError(Exception):
     pass
 
 class Relay:
-    def __init__(self, pin):
+    def __init__(self, pin, off_state):
         self.pin = pin
         self.state = None
+        self.low = get_pin_output(bool(off_state))
+        self.high = get_pin_output(not bool(off_state))
 
-    def set_state(self, value):
-        self.state = value
+    def set_high(self):
+        GPIO.output(self.pin, self.high)
+        self.state = 1
+
+    def set_low(self):
+        GPIO.output(self.pin, self.low)
+        self.state = 0
 
 class RelayController:
     def __init__(self, registers=None, channels=4):
@@ -24,7 +37,7 @@ class RelayController:
             self.registers = {}
         self.max_channels = channels
 
-    def register(self, name, pin):
+    def register(self, name, pin, off_state=0):
         if len(self.registers) <= self.max_channels:
             self.registers[name] = Relay(pin)
         else:
@@ -44,13 +57,11 @@ class RelayController:
 
     def set_high(self, name):
         self.has_register(name)
-        GPIO.output(self.registers[name].pin, GPIO.LOW)
-        self.registers[name].set_state(1)
+        self.registers[name].set_high()
 
     def set_low(self, name):
         self.has_register(name)
-        GPIO.output(self.registers[name].pin, GPIO.HIGH)
-        self.registers[name].set_state(0)
+        self.registers[name].set_low(0)
 
     def set_all_low(self):
         for name in self.registers:

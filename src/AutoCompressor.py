@@ -184,8 +184,16 @@ class AutoCompressor:
         self.air_sensor = AirSensor(sensor_config, self.config[CONFIG_AIR_SENSOR]["AO_channel"])
 
         # initialise relay controller
-        self.relay_controller.register(RC_INLET, int(self.config[CONFIG_RELAY_CONTROLLER]["inlet_pin"]))
-        self.relay_controller.register(RC_OUTLET, int(self.config[CONFIG_RELAY_CONTROLLER]["outlet_pin"]))
+        self.relay_controller.register(
+            RC_INLET,
+            int(self.config[CONFIG_RELAY_CONTROLLER]["inlet_pin"]),
+            int(self.config[CONFIG_RELAY_CONTROLLER]["inlet_off_state"])
+        )
+        self.relay_controller.register(
+            RC_OUTLET,
+            int(self.config[CONFIG_RELAY_CONTROLLER]["outlet_pin"]),
+            int(self.config[CONFIG_RELAY_CONTROLLER]["outlet_off_state"])
+        )
 
         # compressor variables
         self.init_inflate_dur = float(self.config[CONFIG_COMPRESSOR]["init_check_inflate"])
