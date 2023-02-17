@@ -153,14 +153,14 @@ class AutoCompressor:
         self.logger = logger
 
         # Compressor variables
-        self.init_deflate_dur = None
-        self.init_inflate_dur = None
-        self.flow_rate_in = None
-        self.flow_rate_out = None
-        self.on_delay = None
-        self.pressure_balance_delay = None
-        self.error_margin = None
-        self.ambient_temperature = None
+        self.init_deflate_dur = None                # (s)
+        self.init_inflate_dur = None                # (s)
+        self.flow_rate_in = None                    # (L/s)
+        self.flow_rate_out = None                   # (L/s)
+        self.on_delay = None                        # (s)
+        self.pressure_balance_delay = None          # (s)
+        self.error_margin = None                    # (%)
+        self.ambient_temperature = None             # (C°)
 
         self.initialise()
 
