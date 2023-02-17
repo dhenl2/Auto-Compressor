@@ -72,7 +72,7 @@ def determine_mols(v, p, n, T):
     :param p: Pressure to be used (Pa).
     :param n: Number of mols to be used.
     :param T: Temperature to be used (K)
-    :return:
+    :return: Number of mols given arguments.
     """
 
     return (p * v) / (UNIVERSAL_GAS_CONSTANT * T)
