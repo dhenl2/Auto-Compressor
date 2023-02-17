@@ -53,7 +53,7 @@ def determine_mols_pressure_diff(p1, p2, t, flow_rate):
 
     return (flow_rate * p1 * t) / (p1 - p2)
 
-def determine_mols(v, p, n, T):
+def determine_mols(v, p, T):
     """
     Determine the number of mols using the Idea Gas law.
     Formula is:
@@ -225,7 +225,7 @@ class AutoCompressor:
         while True:
             p_curr = psi_pa(self.check_pressure(raw=True))
             self.logger(f"Currently at {round(p_curr)}{units}")
-            mol_curr = determine_mols(volume, psi_pa(p_curr), mol_curr, self.ambient_temperature)
+            mol_curr = determine_mols(volume, psi_pa(p_curr), self.ambient_temperature)
 
             # inflation/deflation controls
             flow_rate = None
