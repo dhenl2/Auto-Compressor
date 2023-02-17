@@ -158,7 +158,9 @@ class AutoCompressor:
         self.flow_rate_in = None
         self.flow_rate_out = None
         self.on_delay = None
+        self.pressure_balance_delay = None
         self.ambient_temperature = None
+
 
         self.initialise()
 
@@ -191,6 +193,7 @@ class AutoCompressor:
         self.flow_rate_in = float(flow_rate_in_moles(float(self.config[CONFIG_COMPRESSOR]["flow_rate_in"])))
         self.flow_rate_out = float(self.config[CONFIG_COMPRESSOR]["flow_rate_out"])
         self.on_delay = float(self.config[CONFIG_COMPRESSOR]["on_delay"])
+        self.pressure_balance_delay = float(self.config[CONFIG_COMPRESSOR]["pressure_balance_delay"])
 
         # assumptions
         self.ambient_temperature = celsius_to_kelvin(float(self.config[CONFIG_COMPRESSOR]["temperature"]))
@@ -280,7 +283,7 @@ class AutoCompressor:
 
     def check_pressure(self, raw=False):
         self.close_outlet()
-        time.sleep(1)       # allow pressure to settle
+        time.sleep(self.pressure_balance_delay)       # allow pressure to settle
         pressure = self.air_sensor.read_sensor()
 
         if raw:
