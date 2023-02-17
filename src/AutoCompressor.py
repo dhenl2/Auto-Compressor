@@ -159,6 +159,7 @@ class AutoCompressor:
         self.flow_rate_out = None
         self.on_delay = None
         self.pressure_balance_delay = None
+        self.error_margin = None
         self.ambient_temperature = None
 
         self.initialise()
@@ -192,6 +193,7 @@ class AutoCompressor:
         self.flow_rate_in = float(flow_rate_in_moles(float(self.config[CONFIG_COMPRESSOR]["flow_rate_in"])))
         self.flow_rate_out = float(self.config[CONFIG_COMPRESSOR]["flow_rate_out"])
         self.on_delay = float(self.config[CONFIG_COMPRESSOR]["on_delay"])
+        self.error_margin = float(self.config[CONFIG_COMPRESSOR]["error_margin"])
         self.pressure_balance_delay = float(self.config[CONFIG_COMPRESSOR]["pressure_balance_delay"])
 
         # assumptions
@@ -228,7 +230,11 @@ class AutoCompressor:
             # inflation/deflation controls
             flow_rate = None
             apply_change = None
-            if p_curr > target:
+            if (target * (1 - self.error_margin)) <= p_curr <= (target * (1 + self.error_margin)):
+                self.logger.info(f"Current pressure {p_curr}{units} is within threshold of {self.error_margin}%" +
+                                 f" of target {target}{units}")
+                break
+            elif p_curr > target:
                 flow_rate = self.flow_rate_out
                 apply_change = self.deflate
             elif p_curr < target:
