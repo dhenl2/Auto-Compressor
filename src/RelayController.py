@@ -61,7 +61,7 @@ class RelayController:
 
     def set_low(self, name):
         self.has_register(name)
-        self.registers[name].set_low(0)
+        self.registers[name].set_low()
 
     def set_all_low(self):
         for name in self.registers:
