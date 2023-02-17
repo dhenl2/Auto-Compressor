@@ -39,7 +39,7 @@ class RelayController:
 
     def register(self, name, pin, off_state=0):
         if len(self.registers) <= self.max_channels:
-            self.registers[name] = Relay(pin)
+            self.registers[name] = Relay(pin, off_state)
         else:
             raise MaxChannelError(f"Cannot register any more channels")
 
