@@ -233,16 +233,14 @@ class AutoCompressor:
             if (target * (1 - self.error_margin)) <= p_curr <= (target * (1 + self.error_margin)):
                 self.logger.info(f"Current pressure {p_curr}{units} is within threshold of {self.error_margin}%" +
                                  f" of target {target}{units}")
+                self.logger.info(f"Target {target}{units} reached in {time_taken}s and {rounds} rounds")
                 break
             elif p_curr > target:
                 flow_rate = self.flow_rate_out
                 apply_change = self.deflate
-            elif p_curr < target:
+            else:
                 flow_rate = self.flow_rate_in
                 apply_change = self.inflate
-            else:
-                self.logger.info(f"Target {target}{units} reached in {time_taken}s and {rounds} rounds")
-                break
 
             est_time = est_time_to_target(psi_pa(p_curr), psi_pa(target), mol_curr, flow_rate)
             self.logger.debug(f"Estimated time to target is {est_time}s")
