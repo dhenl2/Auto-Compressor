@@ -161,7 +161,6 @@ class AutoCompressor:
         self.pressure_balance_delay = None
         self.ambient_temperature = None
 
-
         self.initialise()
 
     def initialise(self):
@@ -218,30 +217,32 @@ class AutoCompressor:
 
         # time to start inflating/deflating
         self.logger(f"Time to start reaching the target pressure: {self.check_pressure()}{units} -> {target}{units}")
-        target_reached = False
         time_taken = 0
         rounds = 0
         mol_curr = None
-        while not target_reached:
+        while True:
             p_curr = psi_pa(self.check_pressure(raw=True))
             self.logger(f"Currently at {round(p_curr)}{units}")
             mol_curr = determine_mols(volume, psi_pa(p_curr), mol_curr, self.ambient_temperature)
+
+            # inflation/deflation controls
             flow_rate = None
+            apply_change = None
             if p_curr > target:
                 flow_rate = self.flow_rate_out
+                apply_change = self.deflate
             elif p_curr < target:
                 flow_rate = self.flow_rate_in
+                apply_change = self.inflate
             else:
                 self.logger.info(f"Target {target}{units} reached in {time_taken}s and {rounds} rounds")
+                break
 
             est_time = est_time_to_target(psi_pa(p_curr), psi_pa(target), mol_curr, flow_rate)
             self.logger.debug(f"Estimated time to target is {est_time}s")
 
             # correct tyre pressure
-            if p_curr > target:
-                self.inflate(est_time)
-            else:
-                self.deflate(est_time)
+            apply_change(est_time)
             time_taken += est_time
             rounds += 1
 
