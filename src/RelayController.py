@@ -32,24 +32,24 @@ class RelayController:
 
     def has_register(self, name):
         if self.registers.get(name, False) is False:
-            raise UnknownRegisterError(f"Register by {name} does not exist")
+            raise UnknownRegisterError(f"Register by name {name} does not exist")
 
     def delete(self, name):
         self.has_register(name)
         self.registers.pop(name)
 
-    def get(self, name):
+    def get_state(self, name):
         self.has_register(name)
-        return self.registers[name]
+        return self.registers[name].state
 
     def set_high(self, name):
         self.has_register(name)
-        GPIO.output(self.registers[name], GPIO.LOW)
+        GPIO.output(self.registers[name].pin, GPIO.LOW)
         self.registers[name].set_state(1)
 
     def set_low(self, name):
         self.has_register(name)
-        GPIO.output(self.registers[name], GPIO.HIGH)
+        GPIO.output(self.registers[name].pin, GPIO.HIGH)
         self.registers[name].set_state(0)
 
     def set_all_low(self):

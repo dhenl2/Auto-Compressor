@@ -315,16 +315,16 @@ class AutoCompressor:
         self.relay_controller.set_high(RC_OUTLET)
 
     def is_outlet_open(self):
-        return self.relay_controller.get(RC_OUTLET) == 1
+        return self.relay_controller.get_state(RC_OUTLET) == 1
 
     def is_outlet_closed(self):
-        return self.relay_controller.get(RC_OUTLET) == 0
+        return self.relay_controller.get_state(RC_OUTLET) == 0
 
     def is_inlet_open(self):
-        return self.relay_controller.get(RC_INLET) == 1
+        return self.relay_controller.get_state(RC_INLET) == 1
 
     def is_outlet_closed(self):
-        return self.relay_controller.get(RC_INLET) == 0
+        return self.relay_controller.get_state(RC_INLET) == 0
 
 def main():
     compressor = AutoCompressor()
