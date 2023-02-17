@@ -209,7 +209,7 @@ class AutoCompressor:
             self.logger(f"Current reading of {round(p_curr)}{units} is already at target of {target}{units}")
             return
 
-        # determine required values mol
+        # determine required values mol and volume
         init_mols = self.determine_current_mol(psi_pa(p_curr), psi_pa(target))
         p_curr = psi_pa(self.check_pressure(raw=True))
         volume = determine_volume(p_curr, init_mols, self.ambient_temperature)
@@ -255,12 +255,12 @@ class AutoCompressor:
         flow_rate = None
         t = None
         if p_curr > p_target:
-            self.logger.trace("Performing initial estimation using deflation")
+            self.logger.trace(f"Performing initial estimation using deflation for {self.init_deflate_dur}s")
             flow_rate = self.flow_rate_out
             t = self.init_deflate_dur
             self.deflate(t)
         else:
-            self.logger.trace("Performing initial estimation using inflation")
+            self.logger.trace(f"Performing initial estimation using inflation for {self.init_inflate_dur}s")
             flow_rate = self.flow_rate_in
             t = self.init_inflate_dur
             self.inflate(t)
@@ -268,7 +268,6 @@ class AutoCompressor:
         n0 = determine_mols_pressure_diff(p_curr, p_target, t, flow_rate)
 
         return n0 + (flow_rate * t)
-
 
     def inflate(self, duration, close=True):
         self.open_inlet()
@@ -293,11 +292,6 @@ class AutoCompressor:
             return pressure
         else:
             return round(pressure)
-
-    def release_pressure(self, duration=10):
-        self.open_inlet()
-        time.sleep(duration)
-        self.close_inlet()
 
     def open_inlet(self):
         self.relay_controller.set_low(RC_INLET)
