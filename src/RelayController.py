@@ -6,6 +6,14 @@ class MaxChannelError(Exception):
 class UnknownRegisterError(Exception):
     pass
 
+class Relay:
+    def __init__(self, pin):
+        self.pin = pin
+        self.state = None
+
+    def set_state(self, value):
+        self.state = value
+
 class RelayController:
     def __init__(self, registers=None, channels=4):
         if registers is None:
@@ -18,7 +26,7 @@ class RelayController:
 
     def register(self, name, pin):
         if len(self.registers) <= self.max_channels:
-            self.registers[name] = pin
+            self.registers[name] = Relay(pin)
         else:
             raise MaxChannelError(f"Cannot register any more channels")
 
@@ -33,10 +41,12 @@ class RelayController:
     def set_high(self, name):
         self.has_register(name)
         GPIO.output(self.registers[name], GPIO.LOW)
+        self.registers[name].set_state(1)
 
     def set_low(self, name):
         self.has_register(name)
         GPIO.output(self.registers[name], GPIO.HIGH)
+        self.registers[name].set_state(0)
 
     def set_all_low(self):
         for name in self.registers:
