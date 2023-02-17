@@ -38,6 +38,10 @@ class RelayController:
         self.has_register(name)
         self.registers.pop(name)
 
+    def get(self, name):
+        self.has_register(name)
+        return self.registers[name]
+
     def set_high(self, name):
         self.has_register(name)
         GPIO.output(self.registers[name], GPIO.LOW)

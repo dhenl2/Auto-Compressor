@@ -284,10 +284,19 @@ class AutoCompressor:
             self.close_outlet()
 
     def check_pressure(self, raw=False):
-        self.close_outlet()
-        time.sleep(self.pressure_balance_delay)       # allow pressure to settle
-        pressure = self.air_sensor.read_sensor()
+        flow_changed = False
+        if self.is_outlet_open():
+            self.close_outlet()
+            flow_changed = True
+        if self.is_inlet_open():
+            self.close_inlet()
+            flow_changed = True
 
+        if flow_changed:
+            # allow pressure to settle
+            time.sleep(self.pressure_balance_delay)
+
+        pressure = self.air_sensor.read_sensor()
         if raw:
             return pressure
         else:
@@ -304,3 +313,21 @@ class AutoCompressor:
 
     def close_outlet(self):
         self.relay_controller.set_high(RC_OUTLET)
+
+    def is_outlet_open(self):
+        return self.relay_controller.get(RC_OUTLET) == 1
+
+    def is_outlet_closed(self):
+        return self.relay_controller.get(RC_OUTLET) == 0
+
+    def is_inlet_open(self):
+        return self.relay_controller.get(RC_INLET) == 1
+
+    def is_outlet_closed(self):
+        return self.relay_controller.get(RC_INLET) == 0
+
+def main():
+    compressor = AutoCompressor()
+
+if __name__ == "__main__":
+    main()
