@@ -15,7 +15,70 @@ CONFIG_LOGGER = "Logger"
 RC_INLET = "inlet"
 RC_OUTLET = "outlet"
 
+# Number of moles per m3 of air on average
+# https://www.quora.com/How-many-air-molecules-are-present-in-a-cubic-meter-of-air
+MOLES_PER_M3 = 0.0042 * (10 ** 3)
+
+def flow_rate_in_moles(rate):
+    """
+    Convert rate (L/s) to (mols/s)
+    :param rate: Rate (L/s) to be converted
+    :return: Rate in mols/s
+    """
+
+    return rate * MOLES_PER_M3
+
+def determine_initial_mols(p1, p2, t, flow_rate):
+    """
+    Determine the number of mols initially after an inflation of t seconds.
+    Formula is derived from combining the ideal gas law and the proportionality of
+    gasses:
+
+    n = flowRate * p1 * t
+        -----------------
+             p1 - p2
+
+    Where:
+        - flowRate = flow rate of the pump in L/s
+        - n = initial number of mols in the system
+
+    :param p1: Initial pressure reading (Pa)
+    :param p2: Post pressure reading after time t (Pa)
+    :param t: Time in seconds of inflation
+    :param flow_rate: Flow rate of system (mol/s)
+    :return: Initial number of mols
+    """
+
+    return (flow_rate * p1 * t) / (p1 - p2)
+
+
+def est_time_to_target(p1, p2, n0, flow_rate):
+    """
+    Determine the time in seconds to reach target.
+    Formula is derived from combining the ideal gas law and the proportionality of
+    gasses
+
+    t = n0 * ( p2 - p1 )
+        ----------------
+          flow_rate * p1
+
+    Where:
+        - flow_rate = flow rate of the pump in L/s
+
+    :param p1: Initial pressure reading (Pa).
+    :param p2: Target pressure reading (Pa).
+    :param n0: Initial number of mols (mol)
+    :param flow_rate: Flow rate of system (mol/s)
+    :return: Estimated time to target pressure.
+    """
+
+    return (n0 * (p2 - p1)) / (flow_rate * p1)
+
+
 class AutoCompressor:
+    """
+    Auto Compressor Object to control the automation of inflation and deflation
+    """
 
     def __init__(self, config_file=CONFIG_FILE):
         self.config = configparser.ConfigParser().read(config_file)
@@ -50,8 +113,8 @@ class AutoCompressor:
         # compressor variables
         self.init_inflate_dur = self.config[CONFIG_COMPRESSOR]["init_check_inflate"]
         self.init_deflate_dur = self.config[CONFIG_COMPRESSOR]["init_check_deflate"]
-        self.flow_rate_in = self.confg[CONFIG_COMPRESSOR]["flow_rate_in"]
-        self.flow_rate_out = self.confg[CONFIG_COMPRESSOR]["flow_rate_out"]
+        self.flow_rate_in = flow_rate_in_moles(float(self.config[CONFIG_COMPRESSOR]["flow_rate_in"]))
+        self.flow_rate_out = self.config[CONFIG_COMPRESSOR]["flow_rate_out"]
         self.on_delay = self.config[CONFIG_COMPRESSOR]["on_delay"]
 
         # logger
@@ -96,23 +159,9 @@ class AutoCompressor:
         time_to_target = self.est_time_target(p_now, target, flow_rate, c_vol)
         self.logger.debug(f"Estimated time to target is {time_to_target}s")
 
-    def est_time_target(self, p_cur, p_tar, flow_vel, vol):
-        flow_rate = 0.001 * flow_vel
-
-        return (1 / flow_rate) * (((p_cur * vol) / p_tar) - vol)
-
     def determine_outlet_flow(self):
         pass
 
-    def determine_volume(self, p1, p2, flow_vel, t):
-        self.logger.debug(f"Determining volume with p1={p1}, p2={p2} after {t}s")
-        flow_rate = 0.001 * flow_vel     # L/s -> m3/s
-        added_vol = flow_rate * t
-        v1 = added_vol / ((p1 / p2) - 1)
-        v2 = v1 + added_vol
-        self.logger.trace(f"Volume calculations\n\tv1: {v1}\n\tv2: {v2}")
-
-        return v2
 
     def inflate(self, duration, close=True):
         self.open_inlet()
