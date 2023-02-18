@@ -1,4 +1,5 @@
 import configparser
+import sys
 import time
 from loguru import logger
 from datetime import timedelta
@@ -6,7 +7,7 @@ from datetime import timedelta
 from AirSensor import AirSensor
 from RelayController import RelayController
 
-CONFIG_FILE = "/home/dhenl2/AutoCompressor/config.ini"
+CONFIG_FILE = "/home/dhenl2/Auto-Compressor/src/config.ini"
 CONFIG_AIR_SENSOR = "Air Sensor"
 CONFIG_RELAY_CONTROLLER = "Relay Controller"
 CONFIG_COMPRESSOR = "Compressor"
@@ -147,7 +148,8 @@ class AutoCompressor:
     """
 
     def __init__(self, config_file=CONFIG_FILE):
-        self.config = configparser.ConfigParser().read(config_file)
+        self.config = configparser.ConfigParser()
+        self.config.read(config_file)
         self.relay_controller = RelayController()
         self.air_sensor = None
         self.logger = logger
@@ -169,19 +171,24 @@ class AutoCompressor:
         logger.remove()
         logger.add(
             sink=self.config[CONFIG_LOGGER]["file"],
-            rotation=timedelta(day=1),
-            level=self.config[CONFIG_LOGGER]["level"],
-            colourize=True
+            rotation=timedelta(days=1),
+            level=self.config[CONFIG_LOGGER]["level"].upper(),
+            colorize=True
         )
+        if bool(self.config[CONFIG_LOGGER]["stdout"]):
+            logger.add(
+                sink=sys.stdout,
+                level=self.config[CONFIG_LOGGER]["level"].upper()
+            )
         self.logger.info("Initialising AutoCompressor...")
 
         # initialise air sensor
         sensor_config = {
             "m": float(self.config[CONFIG_AIR_SENSOR]["m"]),
             "c": float(self.config[CONFIG_AIR_SENSOR]["c"]),
-            "units": float(self.config[CONFIG_AIR_SENSOR]["units"])
+            "units": self.config[CONFIG_AIR_SENSOR]["units"]
         }
-        self.air_sensor = AirSensor(sensor_config, self.config[CONFIG_AIR_SENSOR]["AO_channel"])
+        self.air_sensor = AirSensor(sensor_config, int(self.config[CONFIG_AIR_SENSOR]["AO_channel"]))
 
         # initialise relay controller
         self.relay_controller.register(
