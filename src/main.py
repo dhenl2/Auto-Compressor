@@ -45,13 +45,13 @@ def relay_test():
         time.sleep(0.8)
         relay_controller.set_low(pin)
         time.sleep(2)
+
 def main():
     air_read = MCP3008(0)
 
     while True:
         print(f"Air Voltage reading: {air_read.value}")
         time.sleep(1)
-
 
 if __name__ == "__main__":
     main()
