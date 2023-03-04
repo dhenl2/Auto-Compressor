@@ -47,28 +47,45 @@ class CalibrationData:
             save.write(json.dumps(to_write, indent=2))
 
 class AirSensor:
-    def __init__(self, config=None, channel=0):
+    def __init__(self, logger):
         self.calib_save = "calibration.json"
         self.channel = 0
-        self.sensor = MCP3008(channel)
+        self.sensor = None
+        self.logger = logger
         # y = mx + c
         self.m = None       # gradient
         self.c = None       # offset
 
         self.units = None
 
-        if not config:
-            if not self.has_calibration():
-                print("No calibration data found.")
-                self.calibrate()
-            else:
-                self.load_calibration()
-        else:
-            self.m = config["m"]
-            self.c = config["c"]
+        # if not config:
+        #     if not self.has_calibration():
+        #         print("No calibration data found.")
+        #         self.calibrate()
+        #     else:
+        #         self.load_calibration()
+        # else:
+        #     self.m = config["m"]
+        #     self.c = config["c"]
+        #     self.units = config["units"]
+
+    def load_config(self, config):
+        self.m = config["m"]
+        self.c = config["c"]
+        self.units = config["units"]
+        self.channel = config["channel"]
+        self.sensor = MCP3008(self.channel)
+        self.logger.info(
+            f"Air Sensor configured as (m, c, units, channel) ({self.m}, {self.c}, {self.units}, {self.channel})")
 
     def read_sensor(self):
-        return self.get_avg_reading()
+        pressure = self.get_avg_reading()
+        if pressure < 0:
+            # Log pressure is less than 0
+            self.logger.debug("Sensor reading is less than 0. Setting to 0")
+            pressure = 0
+
+        return pressure
 
     def get_reading(self, x=None, m=None, c=None):
         if x is None:
@@ -100,7 +117,9 @@ class AirSensor:
             )
 
     def load_calibration(self):
-        with open(f"{DIR}/calibrationData/{self.calib_save}", "r") as file:
+        file_path = f"{DIR}/calibrationData/{self.calib_save}"
+        self.logger.info(f"Loading calibration data from {file_path}")
+        with open(file_path, "r") as file:
             json_obj = json.load(file)
             self.m = json_obj["m"]
             self.c = json_obj["c"]
@@ -108,13 +127,13 @@ class AirSensor:
             print(f"Loaded previous calibration data of y = {self.m}x + {self.c} ({self.units})")
 
     def calibrate(self):
-        print("Starting calibration...")
+        self.logger.info("Starting calibration...")
         # Get calibration metric
         self.units = input("What unit will this be calibrated in? ").strip()
 
         air_pressures = []
         readings = []
-        print("Time to add inputs")
+        self.logger.info("Time to add inputs")
         while True:
             # Ask for a reading
             user_input = input("Whats the next reading? ")
