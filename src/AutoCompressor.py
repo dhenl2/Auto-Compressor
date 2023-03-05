@@ -284,10 +284,10 @@ class AutoCompressor:
             # inflation/deflation controls
             flow_rate = None
             apply_change = None
-            if (target * (1 - self.error_margin)) <= p_curr <= (target * (1 + self.error_margin)):
-                self.logger.info(f"Current pressure {p_curr}{units} is within threshold of {self.error_margin}%" +
-                                 f" of target {target}{units}")
-                self.logger.info(f"Target {target}{units} reached in {time_taken}s and {rounds} rounds")
+            if (target - self.error_margin) <= p_curr <= (target + self.error_margin):
+                self.logger.info(f"Current pressure {p_curr}{units} is within threshold of {target}{units} +/- "
+                                 f"{self.error_margin}")
+                self.logger.info(f"Target {target}{units} reached in {round(time_taken, 2)}s and {rounds} rounds")
                 break
             elif p_curr > target:
                 flow_rate = self.flow_rate_out
@@ -297,7 +297,7 @@ class AutoCompressor:
                 apply_change = self.inflate
 
             est_time = est_time_to_target(p_curr_pascal, target_pascal, mol_curr, flow_rate, self.logger)
-            self.logger.debug(f"Estimated time to target is {est_time}s")
+            self.logger.debug(f"Estimated time to target is {round(est_time)}s")
 
             # correct tyre pressure
             apply_change(est_time)
@@ -397,14 +397,15 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     try:
-        target = 40
-        compressor.logger.info(f"Attempting to reach a target of {40}PSI")
+        target = 44
+        compressor.logger.info(f"Attempting to reach a target of {target}PSI")
         time.sleep(1)
         compressor.reach_target(target)
     except Exception as error:
         compressor.logger.error("Encountered an error")
         compressor.logger.exception(error)
         compressor.exit()
+    compressor.exit()
 
 
 if __name__ == "__main__":
