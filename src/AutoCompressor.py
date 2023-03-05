@@ -44,7 +44,7 @@ def determine_mols_pressure_diff(p1, p2, t, flow_rate, logger):
 
     n = flowRate * p1 * t
         -----------------
-             p1 - p2
+             p2 - p1
 
     Where:
         - flowRate = flow rate of the pump in L/s
@@ -57,7 +57,7 @@ def determine_mols_pressure_diff(p1, p2, t, flow_rate, logger):
     :return: Initial number of mols
     """
 
-    result = (flow_rate * p1 * t) / (p1 - p2)
+    result = (flow_rate * p1 * t) / (p2 - p1)
     logger.trace(f"Calculate mols pressure difference: (p1, p2, flow_rate) ({p1}, {p2}, {flow_rate}) = {result}")
     return result
 
@@ -107,7 +107,7 @@ def est_time_to_target(p1, p2, n0, flow_rate, logger):
     :return: Estimated time to target pressure.
     """
 
-    result = (n0 * (p2 - p1)) / (flow_rate * p1)
+    result = abs((n0 * (p2 - p1)) / (flow_rate * p1))
     logger.trace(f"Est. time to target: (p1, p2, n0, flow_rate) ({p1}, {p2}, {n0}, {flow_rate}) = {result}")
     return result
 
@@ -258,23 +258,28 @@ class AutoCompressor:
         elif round(p_curr) == target:
             self.logger.info(f"Current reading of {round(p_curr)}{units} is already at target of {target}{units}")
             return
+        target_pascal = psi_pa(target)
 
-        # determine required values mol and volume
-        init_mols = self.determine_current_mol(psi_pa(p_curr), psi_pa(target))
-        p_curr = psi_pa(self.check_pressure(raw=True))
+        # determine initial mol value
+        p_curr_pascal = psi_pa(p_curr)
+        init_mols = self.determine_current_mol(p_curr_pascal, target_pascal)
+        # determine current volume based off estimation
+        p_curr_pascal = psi_pa(self.check_pressure(raw=True))
         self.logger.trace(f"Current pressure {p_curr} Pa")
-        volume = determine_volume(p_curr, init_mols, self.ambient_temperature, self.logger)
+        volume = determine_volume(p_curr_pascal, init_mols, self.ambient_temperature, self.logger)
         self.logger.debug(f"Estimated current mols as {init_mols} and volume as {volume} m3")
 
         # time to start inflating/deflating
-        self.logger.info(f"Time to start reaching the target pressure: {self.check_pressure()}{units} -> {target}{units}")
+        p_curr = self.check_pressure()
+        self.logger.info(f"Time to start reaching the target pressure: {p_curr}{units} -> {target}{units}")
         time_taken = 0
         rounds = 0
         mol_curr = None
         while True:
-            p_curr = psi_pa(self.check_pressure(raw=True))
+            p_curr = self.check_pressure(raw=True)
+            p_curr_pascal = psi_pa(p_curr)
             self.logger.info(f"Currently at {round(p_curr)}{units}")
-            mol_curr = determine_mols(volume, psi_pa(p_curr), self.ambient_temperature, self.logger)
+            mol_curr = determine_mols(volume, p_curr_pascal, self.ambient_temperature, self.logger)
 
             # inflation/deflation controls
             flow_rate = None
@@ -291,7 +296,7 @@ class AutoCompressor:
                 flow_rate = self.flow_rate_in
                 apply_change = self.inflate
 
-            est_time = est_time_to_target(psi_pa(p_curr), psi_pa(target), mol_curr, flow_rate, self.logger)
+            est_time = est_time_to_target(p_curr_pascal, target_pascal, mol_curr, flow_rate, self.logger)
             self.logger.debug(f"Estimated time to target is {est_time}s")
 
             # correct tyre pressure
@@ -311,14 +316,15 @@ class AutoCompressor:
             self.logger.trace(f"Performing initial estimation using deflation for {self.init_deflate_dur}s")
             flow_rate = self.flow_rate_out
             t = self.init_deflate_dur
-            self.deflate(t)
+            self.deflate(t, close=True)
         else:
             self.logger.trace(f"Performing initial estimation using inflation for {self.init_inflate_dur}s")
             flow_rate = self.flow_rate_in
             t = self.init_inflate_dur
-            self.inflate(t)
+            self.inflate(t, close=True)
 
-        n0 = determine_mols_pressure_diff(p_curr, p_target, t, flow_rate, self.logger)
+        p_now = psi_pa(self.check_pressure(raw=True))
+        n0 = determine_mols_pressure_diff(p_curr, p_now, t, flow_rate, self.logger)
 
         return n0 + (flow_rate * t)
 
@@ -328,6 +334,8 @@ class AutoCompressor:
 
         if close:
             self.close_inlet()
+            # Wait for pressure to stabilise before finishing
+            time.sleep(self.pressure_balance_delay)
 
     def deflate(self, duration, close=True):
         self.open_outlet()
@@ -335,6 +343,8 @@ class AutoCompressor:
 
         if close:
             self.close_outlet()
+            # Wait for pressure to stabilise before finishing
+            time.sleep(self.pressure_balance_delay)
 
     def check_pressure(self, raw=False):
         flow_changed = False
