@@ -1,4 +1,8 @@
-import RPi.GPIO as GPIO
+import os
+if os.environ["environment"] == "testing":
+    import Mock.GPIO as GPIO
+else:
+    import RPi.GPIO as GPIO
 
 def get_pin_output(state):
     if state:

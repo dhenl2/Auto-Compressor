@@ -1,9 +1,13 @@
-from gpiozero import MCP3008
 import time
 import numpy as np
 from scipy.optimize import curve_fit
 import os
 import json
+
+if os.environ["environment"] == "testing":
+    from test.mocks.MCP3008 import MockMCP3008 as MCP3008
+else:
+    from gpiozero import MCP3008
 
 DIR = "/home/dhenl2/Auto-Compressor/src"
 
@@ -47,7 +51,7 @@ class CalibrationData:
             save.write(json.dumps(to_write, indent=2))
 
 class AirSensor:
-    def __init__(self, logger):
+    def __init__(self, logger, mock=None):
         self.calib_save = "calibration.json"
         self.channel = 0
         self.sensor = None
@@ -57,6 +61,9 @@ class AirSensor:
         self.c = None       # offset
 
         self.units = None
+
+        # Testing
+        self.mock = mock
 
         # if not config:
         #     if not self.has_calibration():

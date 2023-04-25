@@ -1,14 +1,18 @@
 #! /usr/bin/python3.9
 import configparser
+import os
 import sys
 import signal
 import time
 from loguru import logger
 from datetime import timedelta
-import RPi.GPIO as GPIO
+if os.environ["environment"] == "testing":
+    import Mock.GPIO as GPIO
+else:
+    import RPi.GPIO as GPIO
 
-from AirSensor import AirSensor
-from RelayController import RelayController
+from src import AirSensor
+from src import RelayController
 
 CONFIG_FILE = "/home/dhenl2/Auto-Compressor/src/config.ini"
 CONFIG_AIR_SENSOR = "Air Sensor"
