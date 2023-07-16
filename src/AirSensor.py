@@ -4,7 +4,7 @@ from scipy.optimize import curve_fit
 import os
 import json
 
-if os.environ["environment"] == "testing":
+if os.environ.get("environment") == "testing":
     from test.mocks.MCP3008 import MockMCP3008 as MCP3008
 else:
     from gpiozero import MCP3008
