@@ -72,7 +72,7 @@ def test_inflation_times_should_be_positive(mocker):
 
     assert len(mock_funcs.deflate_calls) == 0
     assert len(mock_funcs.inflate_calls) == 4
-    for call in mock_funcs.deflate_calls:
+    for call in mock_funcs.inflate_calls:
         assert 150 > call > 0
 
 def test_inflation_deflation_times_should_be_positive(mocker):
