@@ -1,5 +1,7 @@
+# Use -B flag to always make
+
 venv:
-	source venv/Script/activate
+	source ./venv/Scripts/activate
 
 test:
 	env environment="testing" pytest test/test.py
