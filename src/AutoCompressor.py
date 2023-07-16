@@ -4,15 +4,15 @@ import os
 import sys
 import signal
 import time
-from loguru import logger
+from loguru import logger as loguru
 from datetime import timedelta
-if os.environ["environment"] == "testing":
+if os.environ.get("environment") == "testing":
     import Mock.GPIO as GPIO
 else:
     import RPi.GPIO as GPIO
 
-from src import AirSensor
-from src import RelayController
+from src.RelayController import RelayController
+from src.AirSensor import AirSensor
 
 CONFIG_FILE = "/home/dhenl2/Auto-Compressor/src/config.ini"
 CONFIG_AIR_SENSOR = "Air Sensor"
@@ -57,6 +57,11 @@ def determine_mols_pressure_diff(p1, p2, t, flow_rate, logger):
     logger.trace(f"Calculate mols pressure difference: (p1, p2, flow_rate) ({p1}, {p2}, {flow_rate}) = {result}")
     return result
 
+def determine_flow_rate(p1, p2, t, n0, logger):
+    result = (n0 * (p2 - p1)) / (p1 * t)
+    logger.trace(f"Calculate flow rate: (p1, p2, t, n0) ({p1}, {p2}, {t}, {n0}) = {result}")
+    return result
+
 def determine_mols(v, p, T, logger):
     """
     Determine the number of mols using the Idea Gas law.
@@ -83,7 +88,7 @@ def determine_mols(v, p, T, logger):
     logger.trace(f"Determine mols: (v, p, T) ({v}, {p}, {T}) = {result}")
     return result
 
-def est_time_to_target(p1, p2, n0, flow_rate, logger):
+def  est_time_to_target(p1, p2, n0, flow_rate, logger):
     """
     Determine the time in seconds to reach target.
     Formula is derived from combining the ideal gas law and the proportionality of
@@ -173,7 +178,7 @@ class AutoCompressor:
     """
 
     def __init__(self, config_file=CONFIG_FILE):
-        self.logger = logger
+        self.logger = loguru
         GPIO.cleanup()
         GPIO.setmode(GPIO.BOARD)
         self.config = configparser.ConfigParser()
@@ -199,15 +204,15 @@ class AutoCompressor:
 
     def initialise(self):
         # logger
-        logger.remove()
-        logger.add(
+        self.logger.remove()
+        self.logger.add(
             sink=self.config[CONFIG_LOGGER]["file"],
             rotation=timedelta(days=1),
             level=self.config[CONFIG_LOGGER]["level"].upper(),
             colorize=True
         )
         if bool(self.config[CONFIG_LOGGER]["stdout"]):
-            logger.add(
+            self.logger.add(
                 sink=sys.stdout,
                 level=self.config[CONFIG_LOGGER]["level"].upper()
             )
@@ -251,8 +256,8 @@ class AutoCompressor:
         self.init_inflate_dur = float(self.config[CONFIG_COMPRESSOR]["init_check_inflate"])
         self.init_deflate_dur = float(self.config[CONFIG_COMPRESSOR]["init_check_deflate"])
         self.flow_rate_in = flow_rate_in_moles(float(self.config[CONFIG_COMPRESSOR]["flow_rate_in"]), self.logger)
-        self.flow_rate_out_m = flow_rate_in_moles(float(self.config[CONFIG_COMPRESSOR]["flow_rate_out_m"]), self.logger)
-        self.flow_rate_out_c = flow_rate_in_moles(float(self.config[CONFIG_COMPRESSOR]["flow_rate_out_c"]), self.logger)
+        self.flow_rate_out_m = float(self.config[CONFIG_COMPRESSOR]["flow_rate_out_m"])
+        self.flow_rate_out_c = float(self.config[CONFIG_COMPRESSOR]["flow_rate_out_c"])
         self.error_margin = float(self.config[CONFIG_COMPRESSOR]["error_margin"])
         self.pressure_balance_delay = float(self.config[CONFIG_COMPRESSOR]["pressure_balance_delay"])
 
@@ -267,8 +272,14 @@ class AutoCompressor:
         :param curr_p: Current pressure of the system (Pa)
         :return: Current expected flow rate given the differential pressure.
         """
-        return -(self.flow_rate_out_m * curr_p) + self.flow_rate_out_c
 
+        # TODO this might be the problem child
+        # Need to look into using PA in calculation of flow rate in L/s
+        # Need to look into linear grab made using m and c. See if its suitable for PA inputs
+        return flow_rate_in_moles(-((self.flow_rate_out_m * curr_p) + self.flow_rate_out_c), self.logger)
+
+    def pressure_within_margin(self, target, p_curr):
+        return (target - self.error_margin) <= p_curr <= (target + self.error_margin)
 
     def reach_target(self, target):
         units = self.air_sensor.units
@@ -305,7 +316,7 @@ class AutoCompressor:
             # inflation/deflation controls
             flow_rate = None
             apply_change = None
-            if (target - self.error_margin) <= p_curr <= (target + self.error_margin):
+            if self.pressure_within_margin(target, p_curr):
                 self.logger.info(f"Current pressure {p_curr}{units} is within threshold of {target}{units} +/- "
                                  f"{self.error_margin}")
                 self.logger.info(f"Target {target}{units} reached in {round(time_taken, 2)}s and {rounds} rounds")
@@ -325,7 +336,7 @@ class AutoCompressor:
             time_taken += est_time
             rounds += 1
 
-    def determine_current_mol(self, p_curr, p_target):
+    def determine_current_mol(self, p_curr, p_target, duration=None):
         """
         Determine the current mol value of the system to be inflated/deflated
         :param p_curr: Current pressure in Pa.
@@ -338,12 +349,18 @@ class AutoCompressor:
         if p_curr > p_target:
             self.logger.trace(f"Performing initial estimation using deflation for {self.init_deflate_dur}s")
             flow_rate = self.get_out_flow_rate(p_curr)
-            t = self.init_deflate_dur
+            if duration:
+                t = duration
+            else:
+                t = self.init_deflate_dur
             self.deflate(t)
         else:
             self.logger.trace(f"Performing initial estimation using inflation for {self.init_inflate_dur}s")
             flow_rate = self.flow_rate_in
-            t = self.init_inflate_dur
+            if duration:
+                t = duration
+            else:
+                t = self.init_inflate_dur
             self.inflate(t)
 
         p_now = psi_pa(self.check_pressure(raw=True))
@@ -408,6 +425,46 @@ class AutoCompressor:
 
     def is_outlet_closed(self):
         return self.relay_controller.get_state(RC_INLET) == 0
+
+    def calibrate_flow_rate(self, start_pressure, final_pressure, interval):
+        self.logger.info("Starting calibration for output flow rate")
+        p_curr = self.check_pressure(raw=True)
+        self.logger.info(f"Starting pressure is {round(p_curr)} {self.air_sensor.units}")
+
+        # determine initial mol value
+        p_curr_pascal = psi_pa(p_curr)
+        init_mols = self.determine_current_mol(p_curr_pascal, psi_pa(p_curr + 5), 5)
+        # determine current volume based off estimation
+        p_curr_pascal = psi_pa(self.check_pressure(raw=True))
+        self.logger.trace(f"Current pressure {p_curr} Pa")
+        volume = determine_volume(p_curr_pascal, init_mols, self.ambient_temperature, self.logger)
+        self.logger.debug(f"Estimated current mols as {init_mols} and volume as {volume} m3")
+
+        if self.pressure_within_margin(start_pressure, p_curr):
+            self.reach_target(start_pressure)
+
+
+        self.logger.info(f"Performing deflation analysis every {interval}s till {final_pressure} {self.air_sensor.units}")
+
+        p_readings = []         # PA
+        flow_r_readings = []    # Flow rate (L/s)
+
+        p_curr = self.check_pressure(raw=True)
+        p_curr_pascal = psi_pa(p_curr)
+        p_prev_pascal = None
+        while p_curr > final_pressure:
+            p_prev_pascal = p_curr_pascal
+            self.deflate(interval)
+
+            p_curr = self.check_pressure(raw=True)
+            p_curr_pascal = psi_pa(p_curr)
+            mol_curr = determine_mols(volume, p_curr_pascal, self.ambient_temperature, self.logger)
+            flow_rate = determine_flow_rate(p_prev_pascal, p_curr_pascal, interval, mol_curr, self.logger)
+
+            p_readings.append(p_curr_pascal)
+            flow_r_readings.append(flow_rate)
+
+
 
 def main():
 

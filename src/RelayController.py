@@ -1,5 +1,5 @@
 import os
-if os.environ["environment"] == "testing":
+if os.environ.get("environment") == "testing":
     import Mock.GPIO as GPIO
 else:
     import RPi.GPIO as GPIO
